@@ -1,6 +1,6 @@
-import { sendMessage } from '../../lib/telegramBot';
-import { getStudentById } from '../../lib/googleSheets';
-import { generateShineMessage } from '../../lib/groqAPI';
+import { sendTelegramMessage } from '../../../lib/telegramBot';
+import { getStudentsFromSheet } from '../../../lib/googleSheets';
+import { generateAIMessage } from '../../../lib/groqAPI';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -29,17 +29,16 @@ export default async function handler(req, res) {
 /help - Show this menu
 
 Type any of these commands! 💪`;
-        await sendMessage(chatId, helpText);
+        await sendTelegramMessage(chatId, helpText);
       }
 
       // Today's task
       else if (text === '/today' || text.includes('today')) {
-        await sendMessage(
+        await sendTelegramMessage(
           chatId,
           `Let me prepare your task for today... ⏳`
         );
-        // In a real system, look up student and send personalized task
-        await sendMessage(
+        await sendTelegramMessage(
           chatId,
           `📋 <b>Today's Focus</b>\n\nLet's tackle one weak area for 30 minutes. You'll feel the difference! 💪`
         );
@@ -47,7 +46,7 @@ Type any of these commands! 💪`;
 
       // Progress
       else if (text === '/progress' || text.includes('progress')) {
-        await sendMessage(
+        await sendTelegramMessage(
           chatId,
           `📊 <b>Your Progress</b>\n\nKeep pushing! Every day of consistency compounds. You're doing great! 🚀`
         );
@@ -55,7 +54,7 @@ Type any of these commands! 💪`;
 
       // Weak subjects
       else if (text === '/weak' || text.includes('weak')) {
-        await sendMessage(
+        await sendTelegramMessage(
           chatId,
           `💡 <b>Weak Subject Focus</b>\n\nLet's break it down step by step. Which topic should we start with?`
         );
@@ -63,7 +62,7 @@ Type any of these commands! 💪`;
 
       // Chat with Shine
       else if (text === '/chat' || text.includes('chat')) {
-        await sendMessage(
+        await sendTelegramMessage(
           chatId,
           `👋 Hey ${firstName}! I'm here for you. What's on your mind? Any exam worries, study challenges, or just need motivation?`
         );
@@ -71,7 +70,7 @@ Type any of these commands! 💪`;
 
       // Default response
       else if (text.length > 0) {
-        await sendMessage(
+        await sendTelegramMessage(
           chatId,
           `Got it! I'm learning from you. Type /help to see what I can do. 💪`
         );
@@ -87,14 +86,14 @@ Type any of these commands! 💪`;
       console.log(`Callback from ${firstName}: ${data}`);
 
       if (data === 'start_jamb') {
-        await sendMessage(
+        await sendTelegramMessage(
           chatId,
           `Great! Let's crush that JAMB exam together. What's your target score? 🎯`
         );
       } else if (data === 'learn_skill') {
-        await sendMessage(
+        await sendTelegramMessage(
           chatId,
-          `Awesome! Learning a skill is the best decision. Which skill interest you most? (Design, Video Editing, Freelancing, etc.) 🚀`
+          `Awesome! Learning a skill is the best decision. Which skill interests you most? (Design, Video Editing, Freelancing, etc.) 🚀`
         );
       }
     }
@@ -104,4 +103,4 @@ Type any of these commands! 💪`;
     console.error('Webhook error:', error);
     return res.status(200).json({ ok: true }); // Always return 200 to Telegram
   }
-}
+               }
