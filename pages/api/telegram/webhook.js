@@ -10,16 +10,16 @@ export default async function handler(req, res) {
   try {
     const { message, callback_query } = req.body;
 
-    // Handle regular messages
-    if (message) {
+    // 1. Handle regular text messages
+    if (message && message.text) {
       const chatId = message.chat.id;
-      const text = (message.text || '').toLowerCase();
-      const firstName = message.from.first_name;
+      const text = message.text.trim().toLowerCase();
+      const firstName = message.from.first_name || "there";
 
       console.log(`Message from ${firstName} (${chatId}): ${text}`);
 
       // Help command
-      if (text === '/help' || text.includes('help')) {
+      if (text === '/help' || text === 'help') {
         const helpText = `🎯 <b>Shine Bot Commands</b>
 
 /today - Get today's task
@@ -34,10 +34,7 @@ Type any of these commands! 💪`;
 
       // Today's task
       else if (text === '/today' || text.includes('today')) {
-        await sendTelegramMessage(
-          chatId,
-          `Let me prepare your task for today... ⏳`
-        );
+        await sendTelegramMessage(chatId, `Let me prepare your task for today... ⏳`);
         await sendTelegramMessage(
           chatId,
           `📋 <b>Today's Focus</b>\n\nLet's tackle one weak area for 30 minutes. You'll feel the difference! 💪`
@@ -68,8 +65,8 @@ Type any of these commands! 💪`;
         );
       }
 
-      // Default response
-      else if (text.length > 0) {
+      // Fallback Default response
+      else {
         await sendTelegramMessage(
           chatId,
           `Got it! I'm learning from you. Type /help to see what I can do. 💪`
@@ -77,11 +74,11 @@ Type any of these commands! 💪`;
       }
     }
 
-    // Handle callback queries (button presses)
+    // 2. Handle callback queries (Inline button presses)
     if (callback_query) {
       const { id: callbackId, from, data } = callback_query;
       const chatId = from.id;
-      const firstName = from.first_name;
+      const firstName = from.first_name || "there";
 
       console.log(`Callback from ${firstName}: ${data}`);
 
@@ -101,6 +98,7 @@ Type any of these commands! 💪`;
     return res.status(200).json({ ok: true });
   } catch (error) {
     console.error('Webhook error:', error);
-    return res.status(200).json({ ok: true }); // Always return 200 to Telegram
+    // Always return 200 to Telegram so it stops retrying failed requests
+    return res.status(200).json({ ok: true }); 
   }
-               }
+        }
