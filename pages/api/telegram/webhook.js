@@ -57,6 +57,7 @@ export default async function handler(req, res) {
             chatId,
             `Great to meet you, ${text}! 🎓\n\nWhat program are you focusing on right now?\nType <b>JAMB</b>, <b>Post-UTME</b>, or <b>Skill Acquisition</b>.`
           );
+          return res.status(200).json({ success: true });
         } 
         else if (currentStatus === 'awaiting_type') {
           await updateStudentInSheet(chatId, { student_type: text, onboarding_status: 'awaiting_course' });
@@ -64,6 +65,7 @@ export default async function handler(req, res) {
             chatId,
             `Got it! What is your dream university course or ultimate career goal? (e.g., Medicine, Nursing, Software Engineering)`
           );
+          return res.status(200).json({ success: true });
         } 
         else if (currentStatus === 'awaiting_course') {
           await updateStudentInSheet(chatId, { target_course: text, onboarding_status: 'awaiting_weakness' });
@@ -71,6 +73,7 @@ export default async function handler(req, res) {
             chatId,
             `Incredible choice! To help you prepare perfectly, which subject or topic gives you the most headache right now? 🧠`
           );
+          return res.status(200).json({ success: true });
         } 
         else if (currentStatus === 'awaiting_weakness') {
           await updateStudentInSheet(chatId, { weak_subject: text, onboarding_status: 'awaiting_score' });
@@ -78,6 +81,7 @@ export default async function handler(req, res) {
             chatId,
             `Understood. We will turn that weakness into your strength! 💪\n\nIf you are writing JAMB, what is your target score? (If not, just type 'None')`
           );
+          return res.status(200).json({ success: true });
         } 
         else if (currentStatus === 'awaiting_score') {
           await updateStudentInSheet(chatId, { 
@@ -89,9 +93,8 @@ export default async function handler(req, res) {
             chatId,
             `🎉 <b>Profile Setup Complete!</b> 🎉\n\nYour details have been registered into the Shiney Brain ecosystem. From tomorrow morning, I will begin tracking your goals daily.\n\nFeel free to ask me any study questions or type /help to see what I can do! ✨`
           );
+          return res.status(200).json({ success: true });
         }
-
-        return res.status(200).json({ success: true });
       }
 
       // --- REGULAR BOT COMMANDS (Only runs AFTER onboarding is completed) ---
@@ -118,12 +121,11 @@ export default async function handler(req, res) {
         try {
           await sendMessage(chatId, `Shine is typing... 🧠`);
 
-          // We pass context about the student to the AI so the answer is highly personalized!
           const contextPrompt = `
             You are Shine, an enthusiastic, direct, and deeply caring Nigerian study companion and mentor for Shiney Brain Academy. 
             You are talking to ${currentStudent.name}, who wants to study ${currentStudent.target_course} and struggles with ${currentStudent.weak_subject}. 
             Answer their query warmly, use encouragement, keep it conversational, and drop a Nigerian pidgin/slang expression occasionally (like "Oya," "No shaking," or "Let's run it").
-            Student's message: ${message.text}
+            Student's message: ${text}
           `;
 
           const aiResponse = await generateAIMessage(contextPrompt);
@@ -135,9 +137,30 @@ export default async function handler(req, res) {
       }
     }
 
+    // 2. Handle callback queries (Inline button presses)
+    if (callback_query) {
+      const { id: callbackId, from, data } = callback_query;
+      const chatId = from.id.toString();
+      const firstName = from.first_name || "there";
+
+      console.log(`Callback from ${firstName}: ${data}`);
+
+      if (data === 'start_jamb') {
+        await sendMessage(
+          chatId,
+          `Great! Let's crush that JAMB exam together. What's your target score? 🎯`
+        );
+      } else if (data === 'learn_skill') {
+        await sendMessage(
+          chatId,
+          `Awesome! Learning a skill is the best decision. Which skill interests you most? (Design, Video Editing, Freelancing)`
+        );
+      }
+    }
+
     return res.status(200).json({ success: true });
   } catch (error) {
     console.error('Webhook Error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
-}
+              }
