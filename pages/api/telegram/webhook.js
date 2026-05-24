@@ -1,7 +1,6 @@
-import sendTelegramMessage from '../../../lib/telegramBot';
+import { sendTelegramMessage } from '../../../lib/telegramBot';
 import { getStudentsFromSheet } from '../../../lib/googleSheets';
 import { generateAIMessage } from '../../../lib/groqAPI';
-
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
