@@ -1,4 +1,4 @@
-import { sendTelegramMessage } from '../../../lib/telegramBot';
+import sendTelegramMessage from '../../../lib/telegramBot'; // 👈 Only this one changed
 import { getStudentsFromSheet } from '../../../lib/googleSheets';
 import { generateAIMessage } from '../../../lib/groqAPI';
 
