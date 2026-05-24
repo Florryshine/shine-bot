@@ -1,4 +1,4 @@
-import { sendTelegramMessage } from '../../../lib/telegramBot';
+import { sendMessage } from '../../../lib/telegramBot';
 import { getStudentsFromSheet } from '../../../lib/googleSheets';
 import { generateAIMessage } from '../../../lib/groqAPI';
 export default async function handler(req, res) {
@@ -28,13 +28,13 @@ export default async function handler(req, res) {
 /help - Show this menu
 
 Type any of these commands! 💪`;
-        await sendTelegramMessage(chatId, helpText);
+        await sendMessage(chatId, helpText);
       }
 
       // Today's task
       else if (text === '/today' || text.includes('today')) {
-        await sendTelegramMessage(chatId, `Let me prepare your task for today... ⏳`);
-        await sendTelegramMessage(
+        await sendMessage(chatId, `Let me prepare your task for today... ⏳`);
+        await sendMessage(
           chatId,
           `📋 <b>Today's Focus</b>\n\nLet's tackle one weak area for 30 minutes. You'll feel the difference! 💪`
         );
@@ -42,7 +42,7 @@ Type any of these commands! 💪`;
 
       // Progress
       else if (text === '/progress' || text.includes('progress')) {
-        await sendTelegramMessage(
+        await sendMessage(
           chatId,
           `📊 <b>Your Progress</b>\n\nKeep pushing! Every day of consistency compounds. You're doing great! 🚀`
         );
@@ -50,7 +50,7 @@ Type any of these commands! 💪`;
 
       // Weak subjects
       else if (text === '/weak' || text.includes('weak')) {
-        await sendTelegramMessage(
+        await sendMessage(
           chatId,
           `💡 <b>Weak Subject Focus</b>\n\nLet's break it down step by step. Which topic should we start with?`
         );
@@ -58,7 +58,7 @@ Type any of these commands! 💪`;
 
       // Chat with Shine
       else if (text === '/chat' || text.includes('chat')) {
-        await sendTelegramMessage(
+        await sendMessage(
           chatId,
           `👋 Hey ${firstName}! I'm here for you. What's on your mind? Any exam worries, study challenges, or just need motivation?`
         );
@@ -66,7 +66,7 @@ Type any of these commands! 💪`;
 
       // Fallback Default response
       else {
-        await sendTelegramMessage(
+        await sendMessage(
           chatId,
           `Got it! I'm learning from you. Type /help to see what I can do. 💪`
         );
@@ -82,12 +82,12 @@ Type any of these commands! 💪`;
       console.log(`Callback from ${firstName}: ${data}`);
 
       if (data === 'start_jamb') {
-        await sendTelegramMessage(
+        await sendMessage(
           chatId,
           `Great! Let's crush that JAMB exam together. What's your target score? 🎯`
         );
       } else if (data === 'learn_skill') {
-        await sendTelegramMessage(
+        await sendMessage(
           chatId,
           `Awesome! Learning a skill is the best decision. Which skill interests you most? (Design, Video Editing, Freelancing, etc.) 🚀`
         );
