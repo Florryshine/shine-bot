@@ -1,0 +1,22 @@
+{
+  "name": "shine-bot",
+  "version": "1.0.0",
+  "description": "Shine - AI Student Companion for Shiney Brain Academy",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "^14.0.0",
+    "axios": "^1.6.0",
+    "groq-sdk": "^0.5.0",
+    "dotenv": "^16.3.1",
+    "googleapis": "^118.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.50.0",
+    "eslint-config-next": "^14.0.0"
+  }
+}
