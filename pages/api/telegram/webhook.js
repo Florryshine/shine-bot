@@ -98,41 +98,50 @@ export default async function handler(req, res) {
       }
 
       // --- REGULAR BOT COMMANDS (Only runs AFTER onboarding is completed) ---
-      if (textLower === '/help' || textLower === 'help') {
-        const helpText = `🎯 <b>Shine Bot Commands</b>\n\n/today - Get today's task\n/progress - Check your progress\n/weak - Focus on weak subjects\n/chat - Chat with Shine\n/help - Show this menu\n\nType any of these commands! 💪`;
-        await sendMessage(chatId, helpText);
-      }
-      else if (textLower === '/today' || textLower.includes('today')) {
-        await sendMessage(chatId, 'Let me prepare your task for today... ⏳');
-        await sendMessage(chatId, `📋 <b>Today's Focus</b>\n\nLet's tackle your weak area (<b>${currentStudent.weak_subject}</b>) for 30 minutes today. Your target of ${currentStudent.target_course} requires consistency! 💪`);
-      }
-      else if (textLower === '/progress' || textLower.includes('progress')) {
-        await sendMessage(chatId, `📊 <b>Your Progress</b>\n\nKeep pushing, ${currentStudent.name}! Every day of consistency compounds. You're doing great! 🚀`);
-      }
-      else if (textLower === '/weak' || textLower.includes('weak')) {
-        await sendMessage(chatId, `💡 <b>Weak Subject Focus</b>\n\nLet's break down <b>${currentStudent.weak_subject}</b> step by step. Which specific topic should we start with?`);
-      }
-      else if (textLower === '/chat' || textLower.includes('chat')) {
-        await sendMessage(chatId, `👋 Hey ${currentStudent.name}! I'm here for you. What's on your mind? Any exam worries, study challenges, or just need motivation?`);
-      }
+      if (currentStudent && currentStudent.onboarding_status === 'completed') {
+        if (textLower === '/help' || textLower === 'help') {
+          const helpText = `🎯 <b>Shine Bot Commands</b>\n\n/today - Get today's task\n/progress - Check your progress\n/weak - Focus on weak subjects\n/chat - Chat with Shine\n/help - Show this menu\n\nType any of these commands! 💪`;
+          await sendMessage(chatId, helpText);
+          return res.status(200).json({ success: true });
+        }
+        else if (textLower === '/today' || textLower.includes('today')) {
+          await sendMessage(chatId, 'Let me prepare your task for today... ⏳');
+          await sendMessage(chatId, `📋 <b>Today's Focus</b>\n\nLet's tackle your weak area (<b>${currentStudent.weak_subject}</b>) for 30 minutes today. Your target of ${currentStudent.target_course} requires consistency! 💪`);
+          return res.status(200).json({ success: true });
+        }
+        else if (textLower === '/progress' || textLower.includes('progress')) {
+          await sendMessage(chatId, `📊 <b>Your Progress</b>\n\nKeep pushing, ${currentStudent.name}! Every day of consistency compounds. You're doing great! 🚀`);
+          return res.status(200).json({ success: true });
+        }
+        else if (textLower === '/weak' || textLower.includes('weak')) {
+          await sendMessage(chatId, `💡 <b>Weak Subject Focus</b>\n\nLet's break down <b>${currentStudent.weak_subject}</b> step by step. Which specific topic should we start with?`);
+          return res.status(200).json({ success: true });
+        }
+        else if (textLower === '/chat' || textLower.includes('chat')) {
+          await sendMessage(chatId, `👋 Hey ${currentStudent.name}! I'm here for you. What's on your mind? Any exam worries, study challenges, or just need motivation?`);
+          return res.status(200).json({ success: true });
+        }
 
-      // --- FALLBACK TO DYNAMIC AI BRAIN ---
-      else {
-        try {
-          await sendMessage(chatId, `Shine is typing... 🧠`);
+        // --- FALLBACK TO DYNAMIC AI BRAIN ---
+        else {
+          try {
+            await sendMessage(chatId, `Shine is typing... 🧠`);
 
-          const contextPrompt = `
-            You are Shine, an enthusiastic, direct, and deeply caring Nigerian study companion and mentor for Shiney Brain Academy. 
-            You are talking to ${currentStudent.name}, who wants to study ${currentStudent.target_course} and struggles with ${currentStudent.weak_subject}. 
-            Answer their query warmly, use encouragement, keep it conversational, and drop a Nigerian pidgin/slang expression occasionally (like "Oya," "No shaking," or "Let's run it").
-            Student's message: ${text}
-          `;
+            const contextPrompt = `
+              You are Shine, an enthusiastic, direct, and deeply caring Nigerian study companion and mentor for Shiney Brain Academy. 
+              You are talking to ${currentStudent.name}, who wants to study ${currentStudent.target_course} and struggles with ${currentStudent.weak_subject}. 
+              Answer their query warmly, use encouragement, keep it conversational, and drop a Nigerian pidgin/slang expression occasionally (like "Oya," "No shaking," or "Let's run it").
+              Student's message: ${text}
+            `;
 
-          const aiResponse = await generateAIMessage(contextPrompt);
-          await sendMessage(chatId, aiResponse);
-        } catch (aiError) {
-          console.error("AI Generation failed:", aiError);
-          await sendMessage(chatId, `Ouse! I'm having a small connection glitch. Let's try that again in a second.`);
+            const aiResponse = await generateAIMessage(contextPrompt);
+            await sendMessage(chatId, aiResponse);
+            return res.status(200).json({ success: true });
+          } catch (aiError) {
+            console.error("AI Generation failed:", aiError);
+            await sendMessage(chatId, `Ouse! I'm having a small connection glitch. Let's try that again in a second.`);
+            return res.status(200).json({ success: true });
+          }
         }
       }
     }
@@ -156,6 +165,8 @@ export default async function handler(req, res) {
           `Awesome! Learning a skill is the best decision. Which skill interests you most? (Design, Video Editing, Freelancing)`
         );
       }
+
+      return res.status(200).json({ success: true });
     }
 
     return res.status(200).json({ success: true });
@@ -163,4 +174,5 @@ export default async function handler(req, res) {
     console.error('Webhook Error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
-              }
+                                              }
+            
