@@ -10,18 +10,26 @@ export default async function handler(req, res) {
   try {
     const { message } = req.body;
 
-    // Handle text messages
     if (message && message.text) {
       const chatId = message.chat.id.toString();
       const text = message.text.trim();
       const textLower = text.toLowerCase();
       const firstName = message.from.first_name || "there";
 
-      console.log(`Message from ${firstName} (${chatId}): ${text}`);
+      console.log(`--- DEBUG: Message from ${firstName} (ID: ${chatId}) ---`);
 
       // Fetch all students
       const students = await getStudents();
+      
+      // Find current student
       const currentStudent = students.find(s => s.telegram_id.toString() === chatId);
+
+      // DEBUG LOGGING
+      console.log(`Total students fetched: ${students.length}`);
+      console.log(`Student found: ${!!currentStudent}`);
+      if (!currentStudent && students.length > 0) {
+        console.log(`First student ID in sheet: '${students[0].telegram_id}'`);
+      }
 
       // If student not found - send welcome message
       if (!currentStudent) {
@@ -30,7 +38,7 @@ export default async function handler(req, res) {
           await sendMessage(chatId, welcomeMsg);
         } catch (err) {
           console.error('Welcome message error:', err);
-          await sendMessage(chatId, `🌟 Welcome to Shiney Brain Academy! I'm Shine, your AI study companion. What's your name?`);
+          await sendMessage(chatId, `🌟 Welcome to Shiney Brain Academy! I'm Shine, your AI study companion. Please ensure your Telegram ID is registered in our records.`);
         }
         return res.status(200).json({ success: true });
       }
@@ -63,15 +71,13 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true });
       }
 
-      // Fallback to AI for any other message
+      // Fallback to AI
       else {
         try {
           await sendMessage(chatId, `Shine is typing... 🧠`);
-
           const aiResponse = await generateShineMessage(currentStudent);
           await sendMessage(chatId, aiResponse);
-
-          // Update last message sent
+          
           try {
             await updateLastMessageSent(chatId, new Date().toISOString().split('T')[0]);
           } catch (updateErr) {
