@@ -3,7 +3,7 @@ import { getStudents, addNewStudent, updateLastMessageSent } from '../../../lib/
 import { generateShineMessage, generateAIReply, generateWelcomeMessage } from '../../../lib/groqAPI';
 
 // Admin group ID - all student messages forward here
-const ADMIN_GROUP_ID = -1002051625339;
+const ADMIN_GROUP_ID = -1003881055286;
 
 // Auto-forward student messages to admin group
 async function forwardToAdminGroup(student, text, chatId) {
