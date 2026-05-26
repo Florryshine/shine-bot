@@ -1,28 +1,27 @@
 import { getStudents } from '../../lib/googleSheets';
-import { generateShineMessage } from '../../lib/groqAPI';
 import { sendMessage } from '../../lib/telegramBot';
 
+const motivationalMessages = [
+  "🌟 Good morning! Remember, every small step forward is progress. You've got this! 💪",
+  "☀️ Rise and shine! Today is a great day to tackle those weak subjects. Let's go! 🚀",
+  "💡 New day, new opportunities! Stay focused, stay determined. You're closer to your goals than you think! 🎯",
+  "🔥 It's a fresh start! Don't let yesterday's struggles define today. Push forward! 💯",
+  "✨ Morning motivation: Consistency beats perfection. One day at a time! 🏆",
+  "🌈 You're stronger than your challenges. Keep grinding! 💪",
+  "⭐ Today's a perfect day to show yourself what you're made of! Let's do this! 🎓",
+];
+
+function getRandomMessage() {
+  return motivationalMessages[Math.floor(Math.random() * motivationalMessages.length)];
+}
+
 export default async function handler(req, res) {
-  // Verify it's a POST request
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   console.log('===== DAILY MESSAGE CRON JOB STARTED =====');
   console.log('Time:', new Date().toISOString());
-  console.log('Headers:', req.headers);
-
-  // Security: verify Vercel cron secret (optional - only if you set it)
-  const authHeader = req.headers.authorization;
-  const cronSecret = process.env.CRON_SECRET;
-
-  // If CRON_SECRET is set, verify it. Otherwise allow it.
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    console.log('❌ Unauthorized: Invalid cron secret');
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-
-  console.log('✅ Authorization passed');
 
   const startTime = new Date();
 
@@ -55,8 +54,18 @@ export default async function handler(req, res) {
       try {
         console.log(`📤 Sending to ${student.name} (ID: ${student.telegram_id})...`);
 
-        // Generate personalized message
-        const message = await generateShineMessage(student);
+        // Get a random motivational message
+        const motivationalMsg = getRandomMessage();
+        
+        // Format with student name
+        const message = `
+${motivationalMsg}
+
+Your current focus: <b>${student.weak_subjects || 'General Review'}</b>
+Target score: <b>${student.target_scores || 'Not set'}</b>
+
+Keep pushing! 🌟
+        `;
 
         // Send via Telegram
         await sendMessage(student.telegram_id, message);
@@ -68,7 +77,7 @@ export default async function handler(req, res) {
         await new Promise(resolve => setTimeout(resolve, 500));
       } catch (error) {
         failed++;
-        const errorMsg = error.message || JSON.stringify(error);
+        const errorMsg = error.message || 'Unknown error';
         errors.push({
           student: student.name,
           telegram_id: student.telegram_id,
