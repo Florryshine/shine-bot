@@ -2,6 +2,119 @@ import { sendMessage } from '../../../lib/telegramBot';
 import { getStudents, addNewStudent, updateLastMessageSent } from '../../../lib/googleSheets';
 import { generateShineMessage, generateAIReply, generateWelcomeMessage } from '../../../lib/groqAPI';
 
+// Admin group ID - all student messages forward here
+const ADMIN_GROUP_ID = -1002051625339;
+
+// Auto-forward student messages to admin group
+async function forwardToAdminGroup(student, text, chatId) {
+  try {
+    const adminMessage = `
+👤 <b>From:</b> ${student.name} (${student.student_id || 'Unknown'})
+🆔 <b>Telegram ID:</b> <code>${chatId}</code>
+
+📝 <b>Message:</b>
+${text}
+
+<b>━━━━━━━━━━━━━━━━━━</b>
+💬 Reply in this group to respond to ${student.name}
+`;
+
+    await sendMessage(ADMIN_GROUP_ID, adminMessage);
+  } catch (error) {
+    console.error('Error forwarding to admin group:', error);
+  }
+}
+
+// Handle admin replies from the admin group
+async function handleAdminReply(req) {
+  const { message } = req.body;
+  
+  // Check if message is from the admin group
+  if (!message || message.chat.id !== ADMIN_GROUP_ID) {
+    return false;
+  }
+
+  // Check if this is a reply to another message
+  if (!message.reply_to_message) {
+    return false;
+  }
+
+  // Extract student ID from the forwarded message text
+  const replyText = message.reply_to_message.text || '';
+  const studentIdMatch = replyText.match(/🆔 <b>Telegram ID:<\/b> <code>(\d+)<\/code>/);
+
+  if (!studentIdMatch) {
+    return false;
+  }
+
+  const studentChatId = studentIdMatch[1];
+  const adminReplyText = message.text;
+
+  // Send admin's reply to the student
+  try {
+    const formattedReply = `
+📩 <b>Coach Florryshine:</b>
+
+${adminReplyText}
+    `;
+    
+    await sendMessage(studentChatId, formattedReply);
+    await sendMessage(ADMIN_GROUP_ID, `✅ Message sent to student!`);
+    
+    return true;
+  } catch (error) {
+    console.error('Error sending admin reply:', error);
+    await sendMessage(ADMIN_GROUP_ID, `❌ Error sending message: ${error.message}`);
+    return false;
+  }
+}
+
+// Broadcast message to all students
+async function broadcastToAllStudents(message) {
+  try {
+    const students = await getStudents();
+    
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const student of students) {
+      try {
+        const formattedMsg = `
+📢 <b>Announcement from Shiney Brain Academy</b>
+
+${message}
+
+━━━━━━━━━━━━━━━━
+Shine Bot 🤖
+        `;
+        
+        await sendMessage(student.telegram_id, formattedMsg);
+        successCount++;
+      } catch (err) {
+        console.error(`Failed to send to ${student.name}:`, err);
+        failCount++;
+      }
+    }
+
+    // Report to admin
+    const report = `
+✅ Broadcast Complete!
+
+📤 Sent: ${successCount} students
+❌ Failed: ${failCount} students
+
+Message:
+"${message}"
+    `;
+    
+    await sendMessage(ADMIN_GROUP_ID, report);
+  } catch (error) {
+    console.error('Broadcast error:', error);
+    await sendMessage(ADMIN_GROUP_ID, `❌ Broadcast failed: ${error.message}`);
+  }
+}
+
+// Main handler
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -10,6 +123,24 @@ export default async function handler(req, res) {
   try {
     const { message } = req.body;
 
+    // === Check if this is an admin reply from the group ===
+    const isAdminReply = await handleAdminReply(req);
+    if (isAdminReply) {
+      return res.status(200).json({ success: true });
+    }
+
+    // === Handle broadcast command from admin group ===
+    if (message && message.chat.id === ADMIN_GROUP_ID) {
+      const text = (message.text || '').trim();
+      
+      if (text.startsWith('/broadcast ')) {
+        const broadcastMsg = text.replace('/broadcast ', '').trim();
+        await broadcastToAllStudents(broadcastMsg);
+        return res.status(200).json({ success: true });
+      }
+    }
+
+    // === Handle regular student messages ===
     if (message && message.text) {
       const chatId = message.chat.id.toString();
       const text = message.text.trim();
@@ -40,6 +171,9 @@ export default async function handler(req, res) {
 
         return res.status(200).json({ success: true });
       }
+
+      // === NEW: Forward message to admin group ===
+      await forwardToAdminGroup(currentStudent, text, chatId);
 
       // ── COMMANDS ──
       if (textLower === '/start') {
