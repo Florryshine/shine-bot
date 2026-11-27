@@ -1,166 +1,117 @@
-import { sendMessage } from '../../lib/telegramBot';
+// pages/api/send-daily.js — Daily motivation cron (v1 feature, repaired).
+//
+// Audit fixes applied here:
+//   * accepts GET (Vercel cron sends GET — the old POST-only handler 405'd every
+//     cron invocation) as well as POST for manual triggers;
+//   * auth: Vercel automatically attaches `Authorization: Bearer $CRON_SECRET`
+//     when that env var exists; requests carrying x-vercel-cron (the scheduler)
+//     or a valid secret pass, everyone else is rejected;
+//   * reads the SAME canonical `students` schema as everything else (the old
+//     version read tab `Sheet1` with a different column layout);
+//   * AI-personalised motivation via lib/ai (responsibility 5), with static
+//     fallback templates so a Groq outage still delivers messages;
+//   * updateLastMessageSent() now really writes the sheet (was a stub);
+//   * 429-aware sending (lib/telegram/client) + pacing delay;
+//   * no raw sheet dumps in logs.
 
-const motivationalMessages = [
+import appConfig from '../../lib/config.js';
+import logger from '../../lib/logger.js';
+import { makeTelegramClient } from '../../lib/telegram/client.js';
+import { getStudents, updateLastMessageSent, isEligibleForDaily } from '../../lib/googleSheets.js';
+import { generateShineMessage, pickMessageTypeAndTone } from '../../lib/ai/motivation.js';
+
+export const config = { maxDuration: 60 };
+
+const FALLBACK_MESSAGES = [
   "🌟 Good morning! Remember, every small step forward is progress. You've got this! 💪",
-  "☀️ Rise and shine! Today is a great day to tackle those weak subjects. Let's go! 🚀",
-  "💡 New day, new opportunities! Stay focused, stay determined. You're closer to your goals than you think! 🎯",
-  "🔥 It's a fresh start! Don't let yesterday's struggles define today. Push forward! 💯",
-  "✨ Morning motivation: Consistency beats perfection. One day at a time! 🏆",
-  "🌈 You're stronger than your challenges. Keep grinding! 💪",
-  "⭐ Today's a perfect day to show yourself what you're made of! Let's do this! 🎓",
+  '☀️ Rise and shine! Today is a great day to tackle those weak subjects. Let’s go! 🚀',
+  '💡 New day, new opportunities! Stay focused, stay determined. You’re closer to your goals than you think! 🎯',
+  '🔥 It’s a fresh start! Don’t let yesterday’s struggles define today. Push forward! 💯',
+  '✨ Morning motivation: Consistency beats perfection. One day at a time! 🏆',
+  '🌈 You’re stronger than your challenges. Keep grinding! 💪',
+  '⭐ Today’s a perfect day to show yourself what you’re made of! Let’s do this! 🎓',
 ];
 
-function getRandomMessage() {
-  return motivationalMessages[Math.floor(Math.random() * motivationalMessages.length)];
+function checkAuth(req) {
+  const isVercelCron = Boolean(req.headers['x-vercel-cron']);
+  if (isVercelCron) return true;
+  if (!appConfig.cronSecret()) return false;
+  const header = req.headers.authorization || '';
+  return header === `Bearer ${appConfig.cronSecret()}`;
 }
 
-async function getStudentsDirectly() {
-  try {
-    const SHEET_ID = process.env.GOOGLE_SHEET_ID;
-    const API_KEY = process.env.GOOGLE_API_KEY;
-    
-    console.log('Fetching from Google Sheets directly...');
-    console.log('Sheet ID:', SHEET_ID);
-    
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/Sheet1!A2:T1000?key=${API_KEY}`;
-    
-    const response = await fetch(url);
-    const data = await response.json();
-    
-    console.log('Raw response:', data);
-    
-    if (!data.values) {
-      console.log('No values found in sheet');
-      return [];
+function escapeHtml(text) {
+  return String(text || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+async function runDaily({ sendReport = true, telegram = makeTelegramClient() } = {}) {
+  const startTime = Date.now();
+  const students = await getStudents();
+  const eligible = students.filter(isEligibleForDaily);
+
+  logger.info(`daily: ${students.length} students, ${eligible.length} eligible`);
+
+  let sent = 0;
+  let failed = 0;
+  const errors = [];
+
+  for (const student of eligible) {
+    try {
+      const { tone, messageType, daysInactive, daysToExam } = pickMessageTypeAndTone(student);
+      let body;
+      try {
+        body = await generateShineMessage(student);
+      } catch (aiErr) {
+        // Static fallback preserved from v1.
+        body = FALLBACK_MESSAGES[Math.floor(Math.random() * FALLBACK_MESSAGES.length)];
+        body += `\n\nYour current focus: ${student.weak_subjects || 'General Review'}${student.target_scores ? ` · Target: ${student.target_scores}` : ''}\nKeep pushing! 🌟`;
+        logger.warn(`daily: AI failed for ${student.name}, used template (${aiErr.message})`);
+      }
+      const message = `${body}\n\n— Shine, Shiney Brain Academy 🤖`;
+      await telegram.sendMessage(student.telegram_id, message);
+      sent++;
+      await updateLastMessageSent(student.row_number, new Date().toISOString().split('T')[0]);
+      // ~12.5 msg/s: comfortably inside Telegram limits.
+      await new Promise((r) => setTimeout(r, 80));
+    } catch (error) {
+      failed++;
+      errors.push({ student: student.name, reason: error.message });
+      logger.warn(`daily: failed for ${student.name}: ${error.message}`);
     }
-
-    const rows = data.values;
-    const students = rows.map((row, index) => ({
-      row_number: index + 2,
-      name: row[0] || 'Unknown',
-      stage: row[1] || '',
-      exam: row[2] || '',
-      weak_subjects: row[3] || '',
-      target_scores: row[4] || '',
-      skills: row[5] || '',
-      student_id: row[6] || '',
-      availability: row[7] || '',
-      streak: row[8] || '',
-      last_active: row[9] || '',
-      joined_date: row[10] || '',
-      telegram_id: row[11] || '',
-      exam_date: row[12] || '',
-      confidence: row[13] || '',
-      skill_progress: row[14] || '',
-      status: row[15] || 'active',
-      goals: row[16] || '',
-    }));
-
-    console.log(`Parsed ${students.length} students`);
-    return students;
-  } catch (error) {
-    console.error('Error fetching students directly:', error.message);
-    throw error;
   }
+
+  const durationSec = ((Date.now() - startTime) / 1000).toFixed(1);
+  const summary = { eligible: eligible.length, sent, failed, skipped: students.length - eligible.length, durationSec };
+  logger.info(`daily done: ${JSON.stringify(summary)}`);
+
+  if (sendReport && appConfig.adminGroupId) {
+    try {
+      const lines = [
+        '🌅 <b>Daily message report</b>',
+        `✅ Sent: ${sent} · ❌ Failed: ${failed} · ⏭️ Skipped: ${students.length - eligible.length}`,
+        errors.length ? `⚠️ First failures: ${errors.slice(0, 5).map((e) => `${e.student} (${e.reason})`).join('; ')}` : '',
+      ].filter(Boolean);
+      await telegram.sendMessage(appConfig.adminGroupId, lines.join('\n'));
+    } catch {
+      /* report is best-effort */
+    }
+  }
+
+  return summary;
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+  if (!checkAuth(req)) {
+    return res.status(401).json({ error: 'Unauthorized' });
   }
-
-  console.log('===== DAILY MESSAGE CRON JOB STARTED =====');
-  console.log('Time:', new Date().toISOString());
-
-  const startTime = new Date();
-
   try {
-    console.log('Fetching students from Google Sheets...');
-    const students = await getStudentsDirectly();
-    console.log(`✅ Found ${students.length} students`);
-
-    if (students.length === 0) {
-      console.log('⚠️ No students found');
-      return res.status(200).json({
-        success: true,
-        message: 'No students found',
-        processed: 0,
-        timestamp: new Date(),
-      });
-    }
-
-    let sent = 0;
-    let failed = 0;
-    const errors = [];
-
-    for (const student of students) {
-      // Skip if status is 'silent'
-      if (student.status === 'silent') {
-        console.log(`⏭️  Skipping ${student.name} (status: silent)`);
-        continue;
-      }
-
-      try {
-        console.log(`📤 Sending to ${student.name} (ID: ${student.telegram_id})...`);
-
-        // Get a random motivational message
-        const motivationalMsg = getRandomMessage();
-        
-        // Format with student name
-        const message = `
-${motivationalMsg}
-
-Your current focus: <b>${student.weak_subjects || 'General Review'}</b>
-Target score: <b>${student.target_scores || 'Not set'}</b>
-
-Keep pushing! 🌟
-        `;
-
-        // Send via Telegram
-        await sendMessage(student.telegram_id, message);
-
-        sent++;
-        console.log(`✅ Sent to ${student.name}`);
-
-        // Add delay to avoid rate limits (500ms between messages)
-        await new Promise(resolve => setTimeout(resolve, 500));
-      } catch (error) {
-        failed++;
-        const errorMsg = error.message || 'Unknown error';
-        errors.push({
-          student: student.name,
-          telegram_id: student.telegram_id,
-          error: errorMsg,
-        });
-        console.error(`❌ Failed for ${student.name}:`, errorMsg);
-      }
-    }
-
-    const duration = ((new Date() - startTime) / 1000).toFixed(2);
-
-    console.log('===== DAILY MESSAGE CRON JOB COMPLETED =====');
-    console.log(`Duration: ${duration}s`);
-    console.log(`Sent: ${sent}, Failed: ${failed}`);
-
-    return res.status(200).json({
-      success: true,
-      processed: students.length,
-      sent: sent,
-      failed: failed,
-      duration: `${duration}s`,
-      timestamp: new Date(),
-      errors: errors.length > 0 ? errors : undefined,
-    });
+    const summary = await runDaily();
+    return res.status(200).json({ success: true, ...summary });
   } catch (error) {
-    console.error('===== DAILY SEND ERROR =====');
-    console.error('Error:', error.message);
-    console.error('Stack:', error.stack);
-
-    return res.status(500).json({
-      success: false,
-      error: error.message,
-      stack: error.stack,
-      timestamp: new Date(),
-    });
+    logger.error(`daily failed: ${error.message}`);
+    return res.status(500).json({ success: false, error: error.message });
   }
 }
+
+// Testable export.
+export { runDaily };

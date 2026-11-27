@@ -47,14 +47,14 @@ shine-bot/
 
 ```
 Groq API Key:
-  <REDACTED_GROQ_KEY>
+  <SET_GROQ_API_KEY_IN_VERCEL>
   
 Telegram Bot Token:
-  <REDACTED_TELEGRAM_TOKEN>
+  <SET_TELEGRAM_BOT_TOKEN_IN_VERCEL>
   Bot Username: @Coachflorryshinebot
   
 Google Sheet ID:
-  <REDACTED_GOOGLE_SHEET_ID>
+  <SET_GOOGLE_SHEET_ID_IN_VERCEL>
   
 Google API Key:
   ⏳ YOU NEED TO GET THIS (Step 1 in QUICKSTART)

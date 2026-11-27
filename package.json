@@ -1,22 +1,26 @@
 {
   "name": "shine-bot",
-  "version": "1.0.0",
-  "description": "Shine - AI Student Companion for Shiney Brain Academy",
+  "version": "2.0.0",
+  "description": "Shine - AI Student Companion and Human Mentorship Bridge for Shiney Brain Academy",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {
-    "next": "^14.0.0",
-    "axios": "^1.6.0",
-    "groq-sdk": "^0.5.0",
-    "dotenv": "^16.3.1",
-    "googleapis": "^118.0.0"
+    "next": "^14.2.5",
+    "axios": "^1.7.9",
+    "groq-sdk": "^1.6.0",
+    "dotenv": "^16.4.5",
+    "googleapis": "^144.0.0"
   },
   "devDependencies": {
-    "eslint": "^8.50.0",
-    "eslint-config-next": "^14.0.0"
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^14.2.5"
   }
 }

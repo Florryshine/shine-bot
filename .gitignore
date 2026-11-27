@@ -38,3 +38,23 @@ yarn-error.log*
 # OS
 .DS_Store
 Thumbs.db
+
+# Environment variables — keep only the safe template
+.env*
+!.env.example
+
+# Service-account credentials and private keys
+*service-account*.json
+*service_account*.json
+*credentials*.json
+*.key
+*.p12
+*.pfx
+
+# Local secrets and backups
+.secrets/
+*.secret
+*.backup
+*.bak
+__pycache__/
+*.py[cod]

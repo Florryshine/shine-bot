@@ -2,9 +2,9 @@
 
 ## YOUR CREDENTIALS (SAVED)
 ```
-✅ Groq API: <REDACTED_GROQ_KEY>
-✅ Telegram Token: <REDACTED_TELEGRAM_TOKEN>
-✅ Sheet ID: <REDACTED_GOOGLE_SHEET_ID>
+✅ Groq API: <SET_GROQ_API_KEY_IN_VERCEL>
+✅ Telegram Token: <SET_TELEGRAM_BOT_TOKEN_IN_VERCEL>
+✅ Sheet ID: <SET_GOOGLE_SHEET_ID_IN_VERCEL>
 ⏳ Google API Key: NEED TO GET (3 min)
 ```
 
@@ -25,7 +25,7 @@
 
 **Test it:** 
 ```
-https://sheets.googleapis.com/v4/spreadsheets/<REDACTED_GOOGLE_SHEET_ID>/values/Sheet1?key=YOUR_KEY
+https://sheets.googleapis.com/v4/spreadsheets/<SET_GOOGLE_SHEET_ID_IN_VERCEL>/values/Sheet1?key=YOUR_KEY
 ```
 
 Should show your student data.

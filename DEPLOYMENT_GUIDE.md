@@ -3,9 +3,9 @@
 ## YOUR CREDENTIALS (ALREADY SET)
 
 ```
-✅ Groq API Key: <REDACTED_GROQ_KEY>
-✅ Telegram Bot Token: <REDACTED_TELEGRAM_TOKEN>
-✅ Google Sheet ID: <REDACTED_GOOGLE_SHEET_ID>
+✅ Groq API Key: <SET_GROQ_API_KEY_IN_VERCEL>
+✅ Telegram Bot Token: <SET_TELEGRAM_BOT_TOKEN_IN_VERCEL>
+✅ Google Sheet ID: <SET_GOOGLE_SHEET_ID_IN_VERCEL>
 ⏳ Google API Key: STILL NEEDED (Step 1)
 ```
 
@@ -31,7 +31,7 @@
 
 **Test it worked:** 
 ```
-Can you access https://sheets.googleapis.com/v4/spreadsheets/<REDACTED_GOOGLE_SHEET_ID>/values/Sheet1?key=YOUR_KEY
+Can you access https://sheets.googleapis.com/v4/spreadsheets/<SET_GOOGLE_SHEET_ID_IN_VERCEL>/values/Sheet1?key=YOUR_KEY
 ```
 
 If you see your student data, ✅ it works!
@@ -122,11 +122,11 @@ It will give you a URL like: `https://shine-bot-9jxk.vercel.app`
 3. Import your repo
 4. Add these environment variables:
    ```
-   GROQ_API_KEY = <REDACTED_GROQ_KEY>
-   TELEGRAM_BOT_TOKEN = <REDACTED_TELEGRAM_TOKEN>
-   GOOGLE_SHEET_ID = <REDACTED_GOOGLE_SHEET_ID>
+   GROQ_API_KEY = <SET_GROQ_API_KEY_IN_VERCEL>
+   TELEGRAM_BOT_TOKEN = <SET_TELEGRAM_BOT_TOKEN_IN_VERCEL>
+   GOOGLE_SHEET_ID = <SET_GOOGLE_SHEET_ID_IN_VERCEL>
    GOOGLE_API_KEY = YOUR_KEY_HERE
-   CRON_SECRET = <REDACTED_CRON_SECRET>
+   CRON_SECRET = <SET_CRON_SECRET_IN_VERCEL>
    ```
 5. Click Deploy
 

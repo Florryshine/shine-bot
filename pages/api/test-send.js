@@ -1,50 +1,45 @@
-import { getStudents } from '../../lib/googleSheets';
-import { generateShineMessage } from '../../lib/groqAPI';
-import { sendMessage } from '../../lib/telegramBot';
+// pages/api/test-send.js — Manual smoke test for the daily-message pipeline.
+//
+// Audit fix: the v1 endpoint was a completely open GET that sent a message to
+// the first active student and returned their name + Telegram id to ANY caller
+// (student PII disclosure + free message-sending for strangers). It is now
+// locked behind ADMIN_API_SECRET and returns no PII.
+
+import config from '../../lib/config.js';
+import logger from '../../lib/logger.js';
+import { makeTelegramClient } from '../../lib/telegram/client.js';
+import { getStudents } from '../../lib/googleSheets.js';
+import { generateShineMessage } from '../../lib/ai/motivation.js';
 
 export default async function handler(req, res) {
-  // Only allow GET for testing (disable in production)
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
+  if (!config.adminApiSecret) {
+    return res.status(503).json({ error: 'ADMIN_API_SECRET is not configured' });
+  }
+  const provided = req.headers['x-admin-secret'] || req.query.secret;
+  if (provided !== config.adminApiSecret) {
+    return res.status(401).json({ error: 'Unauthorized' });
   }
 
   try {
     const students = await getStudents();
-    
-    if (students.length === 0) {
-      return res.status(400).json({ error: 'No students found' });
-    }
-
-    // Get first active student
-    const student = students.find(s => s.status === 'active');
+    const student = students.find((s) => s.status === 'active') || students[0];
     if (!student) {
-      return res.status(400).json({ error: 'No active students found' });
+      return res.status(404).json({ error: 'No registered students found' });
     }
 
-    console.log(`Testing with student: ${student.name}`);
-
-    // Generate message
     const message = await generateShineMessage(student);
-    console.log('Generated message:', message);
+    const telegram = makeTelegramClient();
+    await telegram.sendMessage(student.telegram_id, message);
 
-    // Send message
-    await sendMessage(student.telegram_id, message);
-
+    // No PII in the response: only that a send happened and to whom by row.
     return res.status(200).json({
       success: true,
-      student: {
-        name: student.name,
-        telegram_id: student.telegram_id,
-        status: student.status,
-      },
-      message: message,
-      timestamp: new Date(),
+      sentTo: { student_row: student.row_number, status: student.status },
+      messageLength: message.length,
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Test send error:', error);
-    return res.status(500).json({
-      success: false,
-      error: error.message,
-    });
+    logger.error(`test-send failed: ${error.message}`);
+    return res.status(500).json({ success: false, error: error.message });
   }
 }
